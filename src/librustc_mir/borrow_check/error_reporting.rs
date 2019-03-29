@@ -188,7 +188,7 @@ impl<'cx, 'gcx, 'tcx> MirBorrowckCtxt<'cx, 'gcx, 'tcx> {
                 );
             }
 
-            let ty = used_place.ty(self.mir, self.infcx.tcx).to_ty(self.infcx.tcx);
+            let ty = used_place.ty(self.mir, self.infcx.tcx).to_ty();
             let needs_note = match ty.sty {
                 ty::Closure(id, _) => {
                     let tables = self.infcx.tcx.typeck_tables_of(id);
@@ -203,7 +203,7 @@ impl<'cx, 'gcx, 'tcx> MirBorrowckCtxt<'cx, 'gcx, 'tcx> {
                 let mpi = self.move_data.moves[move_out_indices[0]].path;
                 let place = &self.move_data.move_paths[mpi].place;
 
-                let ty = place.ty(self.mir, self.infcx.tcx).to_ty(self.infcx.tcx);
+                let ty = place.ty(self.mir, self.infcx.tcx).to_ty();
                 let opt_name = self.describe_place_with_options(place, IncludingDowncast(true));
                 let note_msg = match opt_name {
                     Some(ref name) => format!("`{}`", name),
@@ -580,7 +580,7 @@ impl<'cx, 'gcx, 'tcx> MirBorrowckCtxt<'cx, 'gcx, 'tcx> {
         // is a union.
         let is_union = |place: &Place<'tcx>| -> bool {
             place.ty(self.mir, self.infcx.tcx)
-                .to_ty(self.infcx.tcx)
+                .to_ty()
                 .ty_adt_def()
                 .map(|adt| adt.is_union())
                 .unwrap_or(false)
@@ -629,7 +629,7 @@ impl<'cx, 'gcx, 'tcx> MirBorrowckCtxt<'cx, 'gcx, 'tcx> {
 
                             // Also compute the name of the union type, eg. `Foo` so we
                             // can add a helpful note with it.
-                            let ty = base.ty(self.mir, self.infcx.tcx).to_ty(self.infcx.tcx);
+                            let ty = base.ty(self.mir, self.infcx.tcx).to_ty();
 
                             return Some((desc_base, desc_first, desc_second, ty.to_string()));
                         },
@@ -1839,7 +1839,7 @@ impl<'cx, 'gcx, 'tcx> MirBorrowckCtxt<'cx, 'gcx, 'tcx> {
                         StorageDeadOrDrop::LocalStorageDead
                         | StorageDeadOrDrop::BoxedStorageDead => {
                             assert!(
-                                base.ty(self.mir, tcx).to_ty(tcx).is_box(),
+                                base.ty(self.mir, tcx).to_ty().is_box(),
                                 "Drop of value behind a reference or raw pointer"
                             );
                             StorageDeadOrDrop::BoxedStorageDead
@@ -1847,7 +1847,7 @@ impl<'cx, 'gcx, 'tcx> MirBorrowckCtxt<'cx, 'gcx, 'tcx> {
                         StorageDeadOrDrop::Destructor(_) => base_access,
                     },
                     ProjectionElem::Field(..) | ProjectionElem::Downcast(..) => {
-                        let base_ty = base.ty(self.mir, tcx).to_ty(tcx);
+                        let base_ty = base.ty(self.mir, tcx).to_ty();
                         match base_ty.sty {
                             ty::Adt(def, _) if def.has_dtor(tcx) => {
                                 // Report the outermost adt with a destructor

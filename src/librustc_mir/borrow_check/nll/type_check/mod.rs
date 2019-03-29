@@ -517,7 +517,7 @@ impl<'a, 'b, 'gcx, 'tcx> TypeVerifier<'a, 'b, 'gcx, 'tcx> {
             let tcx = self.tcx();
             let trait_ref = ty::TraitRef {
                 def_id: tcx.lang_items().copy_trait().unwrap(),
-                substs: tcx.mk_substs_trait(place_ty.to_ty(tcx), &[]),
+                substs: tcx.mk_substs_trait(place_ty.to_ty(), &[]),
             };
 
             // In order to have a Copy operand, the type T of the
@@ -615,7 +615,7 @@ impl<'a, 'b, 'gcx, 'tcx> TypeVerifier<'a, 'b, 'gcx, 'tcx> {
     ) -> PlaceTy<'tcx> {
         debug!("sanitize_projection: {:?} {:?} {:?}", base, pi, place);
         let tcx = self.tcx();
-        let base_ty = base.to_ty(tcx);
+        let base_ty = base.to_ty();
         match *pi {
             ProjectionElem::Deref => {
                 let deref_ty = base_ty.builtin_deref(true);
@@ -626,7 +626,7 @@ impl<'a, 'b, 'gcx, 'tcx> TypeVerifier<'a, 'b, 'gcx, 'tcx> {
                 }
             }
             ProjectionElem::Index(i) => {
-                let index_ty = Place::Base(PlaceBase::Local(i)).ty(self.mir, tcx).to_ty(tcx);
+                let index_ty = Place::Base(PlaceBase::Local(i)).ty(self.mir, tcx).to_ty();
                 if index_ty != tcx.types.usize {
                     PlaceTy::Ty {
                         ty: span_mirbug_and_err!(self, i, "index by non-usize {:?}", i),
@@ -668,7 +668,7 @@ impl<'a, 'b, 'gcx, 'tcx> TypeVerifier<'a, 'b, 'gcx, 'tcx> {
                 },
             },
             ProjectionElem::Downcast(maybe_name, index) => match base_ty.sty {
-                ty::Adt(adt_def, substs) if adt_def.is_enum() => {
+                ty::Adt(adt_def, _substs) if adt_def.is_enum() => {
                     if index.as_usize() >= adt_def.variants.len() {
                         PlaceTy::Ty {
                             ty: span_mirbug_and_err!(
@@ -681,8 +681,7 @@ impl<'a, 'b, 'gcx, 'tcx> TypeVerifier<'a, 'b, 'gcx, 'tcx> {
                         }
                     } else {
                         PlaceTy::Downcast {
-                            adt_def,
-                            substs,
+                            ty: base_ty,
                             variant_index: index,
                         }
                     }
@@ -748,11 +747,12 @@ impl<'a, 'b, 'gcx, 'tcx> TypeVerifier<'a, 'b, 'gcx, 'tcx> {
         let tcx = self.tcx();
 
         let (variant, substs) = match base_ty {
-            PlaceTy::Downcast {
-                adt_def,
-                substs,
-                variant_index,
-            } => (&adt_def.variants[variant_index], substs),
+            PlaceTy::Downcast { ty, variant_index } => {
+                match ty.sty {
+                    ty::TyKind::Adt(adt_def, substs) => (&adt_def.variants[variant_index], substs),
+                    _ => bug!("can't have downcast of non-adt type"),
+                }
+            }
             PlaceTy::Ty { ty } => match ty.sty {
                 ty::Adt(adt_def, substs) if !adt_def.is_enum() =>
                     (&adt_def.variants[VariantIdx::new(0)], substs),
@@ -1190,7 +1190,7 @@ impl<'a, 'gcx, 'tcx> TypeChecker<'a, 'gcx, 'tcx> {
         debug!("user_ty base: {:?} freshened: {:?} projs: {:?} yields: {:?}",
                 user_ty.base, annotated_type, user_ty.projs, curr_projected_ty);
 
-        let ty = curr_projected_ty.to_ty(tcx);
+        let ty = curr_projected_ty.to_ty();
         self.relate_types(a, v, ty, locations, category)?;
 
         Ok(())
@@ -1338,7 +1338,7 @@ impl<'a, 'gcx, 'tcx> TypeChecker<'a, 'gcx, 'tcx> {
                     _ => ConstraintCategory::Assignment,
                 };
 
-                let place_ty = place.ty(mir, tcx).to_ty(tcx);
+                let place_ty = place.ty(mir, tcx).to_ty();
                 let rv_ty = rv.ty(mir, tcx);
                 if let Err(terr) =
                     self.sub_types_or_anon(rv_ty, place_ty, location.to_locations(), category)
@@ -1390,7 +1390,7 @@ impl<'a, 'gcx, 'tcx> TypeChecker<'a, 'gcx, 'tcx> {
                 ref place,
                 variant_index,
             } => {
-                let place_type = place.ty(mir, tcx).to_ty(tcx);
+                let place_type = place.ty(mir, tcx).to_ty();
                 let adt = match place_type.sty {
                     TyKind::Adt(adt, _) if adt.is_enum() => adt,
                     _ => {
@@ -1412,7 +1412,7 @@ impl<'a, 'gcx, 'tcx> TypeChecker<'a, 'gcx, 'tcx> {
                 };
             }
             StatementKind::AscribeUserType(ref place, variance, box ref projection) => {
-                let place_ty = place.ty(mir, tcx).to_ty(tcx);
+                let place_ty = place.ty(mir, tcx).to_ty();
                 if let Err(terr) = self.relate_type_and_user_type(
                     place_ty,
                     variance,
@@ -1468,7 +1468,7 @@ impl<'a, 'gcx, 'tcx> TypeChecker<'a, 'gcx, 'tcx> {
                 target: _,
                 unwind: _,
             } => {
-                let place_ty = location.ty(mir, tcx).to_ty(tcx);
+                let place_ty = location.ty(mir, tcx).to_ty();
                 let rv_ty = value.ty(mir, tcx);
 
                 let locations = term_location.to_locations();
@@ -1616,7 +1616,7 @@ impl<'a, 'gcx, 'tcx> TypeChecker<'a, 'gcx, 'tcx> {
         let tcx = self.tcx();
         match *destination {
             Some((ref dest, _target_block)) => {
-                let dest_ty = dest.ty(mir, tcx).to_ty(tcx);
+                let dest_ty = dest.ty(mir, tcx).to_ty();
                 let category = match *dest {
                     Place::Base(PlaceBase::Local(RETURN_PLACE)) => {
                         if let Some(BorrowCheckContext {
@@ -2375,7 +2375,7 @@ impl<'a, 'gcx, 'tcx> TypeChecker<'a, 'gcx, 'tcx> {
             match *elem {
                 ProjectionElem::Deref => {
                     let tcx = self.infcx.tcx;
-                    let base_ty = base.ty(mir, tcx).to_ty(tcx);
+                    let base_ty = base.ty(mir, tcx).to_ty();
 
                     debug!("add_reborrow_constraint - base_ty = {:?}", base_ty);
                     match base_ty.sty {
