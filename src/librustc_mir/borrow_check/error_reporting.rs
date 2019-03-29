@@ -1748,8 +1748,9 @@ impl<'cx, 'gcx, 'tcx> MirBorrowckCtxt<'cx, 'gcx, 'tcx> {
                 self.describe_field_from_ty(&static_.ty, field),
             Place::Projection(ref proj) => match proj.elem {
                 ProjectionElem::Deref => self.describe_field(&proj.base, field),
-                ProjectionElem::Downcast(def, variant_index) =>
-                    def.variants[variant_index].fields[field.index()].ident.to_string(),
+                ProjectionElem::Downcast(Some(name), _variant_index) => name.to_string(),
+                ProjectionElem::Downcast(None, variant_index) =>
+                    format!("variant#{:?}", variant_index),
                 ProjectionElem::Field(_, field_type) => {
                     self.describe_field_from_ty(&field_type, field)
                 }
