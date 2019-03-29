@@ -490,7 +490,7 @@ impl<'a, 'tcx: 'a, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
                         let mut subslice = cg_base.project_index(bx,
                             bx.cx().const_usize(from as u64));
                         let projected_ty = PlaceTy::Ty { ty: cg_base.layout.ty }
-                            .projection_ty(tcx, &projection.elem).to_ty(tcx);
+                            .projection_ty(tcx, &projection.elem).to_ty();
                         subslice.layout = bx.cx().layout_of(self.monomorphize(&projected_ty));
 
                         if subslice.layout.is_unsized() {
@@ -518,6 +518,6 @@ impl<'a, 'tcx: 'a, Bx: BuilderMethods<'a, 'tcx>> FunctionCx<'a, 'tcx, Bx> {
     pub fn monomorphized_place_ty(&self, place: &mir::Place<'tcx>) -> Ty<'tcx> {
         let tcx = self.cx.tcx();
         let place_ty = place.ty(self.mir, tcx);
-        self.monomorphize(&place_ty.to_ty(tcx))
+        self.monomorphize(&place_ty.to_ty())
     }
 }
