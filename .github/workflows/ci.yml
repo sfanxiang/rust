@@ -18,9 +18,7 @@ name: CI
 "on":
   push:
     branches:
-      - auto
-      - try
-      - master
+      - "**"
   pull_request:
     branches:
       - "**"
@@ -35,7 +33,6 @@ jobs:
       SCCACHE_BUCKET: rust-lang-gha-caches
       TOOLSTATE_REPO: "https://github.com/pietroalbini/rust-toolstate"
       CACHE_DOMAIN: ci-caches-gha.rust-lang.org
-    if: "github.event_name == 'pull_request'"
     strategy:
       matrix:
         include:
@@ -145,7 +142,7 @@ jobs:
       CACHES_AWS_ACCESS_KEY_ID: AKIA46X5W6CZOMUQATD5
       ARTIFACTS_AWS_ACCESS_KEY_ID: AKIA46X5W6CZH5AYXDVF
       CACHE_DOMAIN: ci-caches-gha.rust-lang.org
-    if: "github.event_name == 'push' && github.ref == 'refs/heads/try' && github.repository == 'rust-lang-ci/rust'"
+    if: "github.event_name == 'push' && github.ref == 'refs/heads/try'
     strategy:
       matrix:
         include:
@@ -252,7 +249,7 @@ jobs:
       CACHES_AWS_ACCESS_KEY_ID: AKIA46X5W6CZOMUQATD5
       ARTIFACTS_AWS_ACCESS_KEY_ID: AKIA46X5W6CZH5AYXDVF
       CACHE_DOMAIN: ci-caches-gha.rust-lang.org
-    if: "github.event_name == 'push' && github.ref == 'refs/heads/auto' && github.repository == 'rust-lang-ci/rust'"
+    if: "github.event_name == 'push' && github.ref == 'refs/heads/auto'
     strategy:
       matrix:
         include:
@@ -596,7 +593,7 @@ jobs:
       CACHES_AWS_ACCESS_KEY_ID: AKIA46X5W6CZOMUQATD5
       ARTIFACTS_AWS_ACCESS_KEY_ID: AKIA46X5W6CZH5AYXDVF
       CACHE_DOMAIN: ci-caches-gha.rust-lang.org
-    if: "github.event_name == 'push' && github.ref == 'refs/heads/master' && github.repository == 'rust-lang-ci/rust'"
+    if: "github.event_name == 'push' && github.ref == 'refs/heads/master'
     steps:
       - name: checkout the source code
         uses: actions/checkout@v1
@@ -610,7 +607,7 @@ jobs:
   try-success:
     needs:
       - try
-    if: "success() && github.event_name == 'push' && github.ref == 'refs/heads/try' && github.repository == 'rust-lang-ci/rust'"
+    if: "success() && github.event_name == 'push' && github.ref == 'refs/heads/try'
     steps:
       - name: mark the job as a success
         run: exit 0
@@ -620,7 +617,7 @@ jobs:
   try-failure:
     needs:
       - try
-    if: "!success() && github.event_name == 'push' && github.ref == 'refs/heads/try' && github.repository == 'rust-lang-ci/rust'"
+    if: "!success() && github.event_name == 'push' && github.ref == 'refs/heads/try'
     steps:
       - name: mark the job as a failure
         run: exit 1
@@ -630,7 +627,7 @@ jobs:
   auto-success:
     needs:
       - auto
-    if: "success() && github.event_name == 'push' && github.ref == 'refs/heads/auto' && github.repository == 'rust-lang-ci/rust'"
+    if: "success() && github.event_name == 'push' && github.ref == 'refs/heads/auto'
     steps:
       - name: mark the job as a success
         run: exit 0
@@ -640,7 +637,7 @@ jobs:
   auto-failure:
     needs:
       - auto
-    if: "!success() && github.event_name == 'push' && github.ref == 'refs/heads/auto' && github.repository == 'rust-lang-ci/rust'"
+    if: "!success() && github.event_name == 'push' && github.ref == 'refs/heads/auto'
     steps:
       - name: mark the job as a failure
         run: exit 1
